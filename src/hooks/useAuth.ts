@@ -22,16 +22,22 @@ export function useAuth() {
   useEffect(() => {
     const auth = localStorage.getItem('pinterest_auth');
     if (auth) {
-      const data = JSON.parse(auth) as PinterestAuth;
-      setIsAuthenticated(true);
-      setUserData(data);
+      try {
+        const data = JSON.parse(auth) as PinterestAuth;
+        setIsAuthenticated(true);
+        setUserData(data);
+      } catch (error) {
+        console.error('Failed to parse auth data:', error);
+        localStorage.removeItem('pinterest_auth');
+      }
     }
   }, []);
 
   const handleAuth = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/pinterest-auth/oauth/url');
+      // Use the correct Netlify Functions endpoint
+      const response = await fetch('/.netlify/functions/pinterest-auth?path=/oauth/url');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -46,11 +52,39 @@ export function useAuth() {
       }
     } catch (error) {
       console.error('Auth error:', error);
-      toast.error('Failed to initiate authentication');
+      toast.error('Failed to initiate authentication. Please try again.');
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  const refreshToken = useCallback(async () => {
+    if (!userData?.token?.refresh_token) {
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/.netlify/functions/pinterest-auth?path=/token&refresh_token=${userData.token.refresh_token}`);
+      const data = await response.json();
+
+      if (response.ok && data.token) {
+        const updatedAuth = {
+          ...userData,
+          token: {
+            ...userData.token,
+            ...data.token
+          }
+        };
+        localStorage.setItem('pinterest_auth', JSON.stringify(updatedAuth));
+        setUserData(updatedAuth);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
+  }, [userData]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('pinterest_auth');
@@ -64,6 +98,7 @@ export function useAuth() {
     isAuthenticated,
     userData,
     handleAuth,
+    refreshToken,
     logout,
     setIsAuthenticated
   };
