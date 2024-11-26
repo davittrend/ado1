@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../hooks/useAuth'; // Adjust the path as needed
 
 function CallbackPage() {
 const navigate = useNavigate();
+const { updateAuthState } = useAuth(); // Add this line
 const [searchParams] = useSearchParams();
 const code = searchParams.get('code');
 const error = searchParams.get('error');
@@ -43,11 +45,12 @@ useEffect(() => {
       });
 
       if (response.ok && data.token && data.user) {
-        console.log('Authentication successful, storing data and redirecting...');
+        console.log('Authentication successful, updating auth state...');
+        // Replace localStorage.setItem with updateAuthState
+        updateAuthState(data);
         toast.success(`Welcome, ${data.user.username || 'Pinterest User'}!`);
-        localStorage.setItem('pinterest_auth', JSON.stringify(data));
 
-        // Add a small delay before navigation to ensure localStorage is set
+        // Add a small delay before navigation
         setTimeout(() => {
           console.log('Navigating to dashboard...');
           navigate('/dashboard', { replace: true });
@@ -69,7 +72,7 @@ useEffect(() => {
   return () => {
     console.log('Callback component unmounting');
   };
-}, [code, error, errorDescription, navigate]);
+}, [code, error, errorDescription, navigate, updateAuthState]); // Add updateAuthState to dependencies
 
 // Also check if auth data exists in localStorage
 useEffect(() => {
