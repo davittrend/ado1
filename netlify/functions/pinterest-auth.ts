@@ -42,3 +42,65 @@ export const handler: Handler = async (event) => {
             body: JSON.stringify({ error: 'Code or refresh token required' }) 
           };
         }
+
+        const tokenResponse = await fetch(`${PINTEREST_API_URL}/oauth/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+          },
+          body: new URLSearchParams({
+            grant_type: refresh_token ? 'refresh_token' : 'authorization_code',
+            ...(code ? { code, redirect_uri: redirectUri } : { refresh_token }),
+          }),
+        });
+
+        const tokenData = await tokenResponse.json();
+        
+        if (!tokenResponse.ok) {
+          throw new Error(tokenData.error_description || tokenData.error || 'Token exchange failed');
+        }
+
+        if (code) {
+          const userResponse = await fetch(`${PINTEREST_API_URL}/user_account`, {
+            headers: { 'Authorization': `Bearer ${tokenData.access_token}` },
+          });
+
+          const userData = await userResponse.json();
+          
+          if (!userResponse.ok) {
+            throw new Error(userData.message || 'Failed to fetch user data');
+          }
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ token: tokenData, user: userData }),
+          };
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ token: tokenData }),
+        };
+      }
+
+      default:
+        return { 
+          statusCode: 404, 
+          headers, 
+          body: JSON.stringify({ error: 'Not found' }) 
+        };
+    }
+  } catch (error) {
+    console.error('Pinterest API Error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Internal server error' 
+      }),
+    };
+  }
+};
