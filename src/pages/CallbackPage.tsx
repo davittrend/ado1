@@ -26,13 +26,14 @@ function CallbackPage() {
       }
 
       try {
-        const response = await fetch(`/api/pinterest-auth?code=${code}`);
+        // Fixed URL to use /.netlify/functions path
+        const response = await fetch(`/.netlify/functions/pinterest-auth?path=/token&code=${code}`);
         const data = await response.json();
 
         if (response.ok && data.token && data.user) {
           toast.success(`Welcome, ${data.user.username || 'Pinterest User'}!`);
           localStorage.setItem('pinterest_auth', JSON.stringify(data));
-          navigate('/', { replace: true });
+          navigate('/dashboard', { replace: true });
         } else {
           throw new Error(data.error || 'Failed to complete authentication');
         }
