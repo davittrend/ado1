@@ -1,11 +1,17 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useAuth } from './hooks/useAuth';
 import HomePage from './pages/HomePage';
 import CallbackPage from './pages/CallbackPage';
 import DashboardPage from './pages/DashboardPage';
 import ScheduledPinsPage from './pages/ScheduledPinsPage';
 import SettingsPage from './pages/SettingsPage';
+
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
+}
 
 function App() {
   return (
@@ -32,9 +38,21 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/callback" element={<CallbackPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/dashboard/scheduled" element={<ScheduledPinsPage />} />
-        <Route path="/dashboard/settings" element={<SettingsPage />} />
+        <Route path="/dashboard" element={
+          <PrivateRoute>
+            <DashboardPage />
+          </PrivateRoute>
+        } />
+        <Route path="/dashboard/scheduled" element={
+          <PrivateRoute>
+            <ScheduledPinsPage />
+          </PrivateRoute>
+        } />
+        <Route path="/dashboard/settings" element={
+          <PrivateRoute>
+            <SettingsPage />
+          </PrivateRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );
