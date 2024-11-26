@@ -18,18 +18,23 @@ export const handler: Handler = async (event) => {
     return { statusCode: 204, headers, body: '' };
   }
 
-  const path = event.path.split('/').pop();
-  const { code, refresh_token } = event.queryStringParameters || {};
+  // Extract the endpoint from the path
+  const endpoint = event.path.split('/').pop();
 
   try {
-    switch (path) {
+    switch (endpoint) {
       case 'url':
         const scope = 'boards:read,pins:read,pins:write,user_accounts:read,boards:write';
-        // Change to sandbox OAuth URL
         const authUrl = `https://www.pinterest.com/oauth/?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=sandbox`;
-        return { statusCode: 200, headers, body: JSON.stringify({ url: authUrl }) };
+        return { 
+          statusCode: 200, 
+          headers, 
+          body: JSON.stringify({ url: authUrl }) 
+        };
 
       case 'token':
+        const { code, refresh_token } = event.queryStringParameters || {};
+        
         if (!code && !refresh_token) {
           return { 
             statusCode: 400, 
@@ -78,32 +83,6 @@ export const handler: Handler = async (event) => {
           statusCode: 200,
           headers,
           body: JSON.stringify({ token: tokenData }),
-        };
-
-      case 'boards':
-        const { access_token } = event.headers.authorization?.split(' ')[1] || {};
-        if (!access_token) {
-          return { 
-            statusCode: 401, 
-            headers, 
-            body: JSON.stringify({ error: 'Unauthorized' }) 
-          };
-        }
-
-        const boardsResponse = await fetch(`${PINTEREST_API_URL}/boards`, {
-          headers: { 'Authorization': `Bearer ${access_token}` },
-        });
-
-        const boardsData = await boardsResponse.json();
-        
-        if (!boardsResponse.ok) {
-          throw new Error(boardsData.message || 'Failed to fetch boards');
-        }
-
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify(boardsData),
         };
 
       default:
