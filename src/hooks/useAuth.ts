@@ -31,7 +31,12 @@ export function useAuth() {
   const handleAuth = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/pinterest-auth?path=/oauth/url');
+      const response = await fetch('/api/pinterest-auth/oauth/url');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.url) {
@@ -40,8 +45,8 @@ export function useAuth() {
         throw new Error('Failed to get authentication URL');
       }
     } catch (error) {
-      toast.error('Failed to initiate authentication');
       console.error('Auth error:', error);
+      toast.error('Failed to initiate authentication');
     } finally {
       setIsLoading(false);
     }
